@@ -29,7 +29,7 @@ jobs:
         run: |
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -e ".[train,eval,dev]"
-          python -c "import torch, os; print('torch', torch.__version__, 'threads', torch.get_num_threads(), 'cpus', os.cpu_count())"
+          python -c "import torch, transformers, os; print('torch', torch.__version__, 'transformers', transformers.__version__, 'threads', torch.get_num_threads(), 'cpus', os.cpu_count())"
 
       - name: Smoke test fine-tuning
         run: pytest -q tests/test_harness.py -k finetune

@@ -76,8 +76,9 @@ def test_finetune_smoke(tmp_path):
     from ftvp.finetune import FineTunedClassifier, train
 
     examples = [e for e in data.load("train") if e.label in ("card_arrival", "exchange_rate")][:40]
-    stats = train(examples, ["card_arrival", "exchange_rate"], tmp_path / "m", base_model="prajjwal1/bert-tiny",
-                  epochs=1, min_steps=4, batch_size=16, lr=1e-3, log=lambda *_: None)
+    # The real base model, so the smoke test also checks that it downloads and loads
+    stats = train(examples, ["card_arrival", "exchange_rate"], tmp_path / "m", epochs=1, min_steps=4,
+                  batch_size=16, lr=1e-4, log=lambda *_: None)
     assert stats["steps"] >= 4 and (tmp_path / "m" / "train_stats.json").exists()
     preds = FineTunedClassifier(tmp_path / "m").predict(["Where is my card?", "What exchange rate do you use?"])
     assert set(preds) <= {"card_arrival", "exchange_rate"}
