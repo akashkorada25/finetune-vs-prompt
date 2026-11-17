@@ -139,7 +139,7 @@ def main(argv=None) -> int:
     t.add_argument("--out")
     t.add_argument("--base-model", default="sentence-transformers/all-MiniLM-L12-v2")
     t.add_argument("--epochs", type=int, default=6)
-    t.add_argument("--lr", type=float, default=8e-5)
+    t.add_argument("--lr", type=float, default=5e-5)
     t.set_defaults(fn=cmd_train)
 
     c = sub.add_parser("curve")
