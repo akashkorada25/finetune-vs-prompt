@@ -1,0 +1,67 @@
+name: Benchmark
+
+# Trains everything on GitHub's free CPU runner (no GPU needed), then compares all systems on the
+# same 770 test messages through EvalForge. The Claude systems run only if the ANTHROPIC_API_KEY
+# secret is set (about $2-3 per run, mostly Claude Sonnet).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "ftvp/**"
+      - "eval/build_suite.py"
+      - ".github/workflows/benchmark.yml"
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      TOKENIZERS_PARALLELISM: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install (CPU-only PyTorch)
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[train,eval,dev]"
+          python -c "import torch, os; print('torch', torch.__version__, 'threads', torch.get_num_threads(), 'cpus', os.cpu_count())"
+
+      - name: Smoke test fine-tuning
+        run: pytest -q tests/test_harness.py -k finetune
+
+      - name: Learning curve (TF-IDF and fine-tuned MiniLM at 5, 10, 25 and all examples per intent)
+        run: |
+          mkdir -p results
+          ftvp curve --ks 5,10,25,all --finetune --out results/curve.json | tee results/curve.txt
+
+      - name: Head-to-head on 770 test messages
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            python eval/build_suite.py; SUITE=eval/suite.yaml
+          else
+            echo "::notice::ANTHROPIC_API_KEY is not set, so only the local systems are compared."
+            python eval/build_suite.py --local-only; SUITE=eval/suite_local.yaml
+          fi
+          evalforge run "$SUITE" --concurrency 6 --retries 5 | tee results/evalforge.txt
+          ftvp report --out results/head_to_head.md --curve results/curve.json
+
+      - name: Job summary
+        if: always()
+        run: cat results/head_to_head.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results
+          path: results/
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: finetuned-minilm
+          path: models/minilm-all/

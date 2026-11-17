@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finetune-vs-prompt"
+version = "0.1.0"
+description = "Fine-tuned small model vs. prompted LLM: intent classification on Banking77, measured with EvalForge."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT (code); CC-BY-4.0 (Banking77 data in data/banking77)"}
+dependencies = ["numpy>=1.24", "scikit-learn>=1.3", "joblib>=1.3", "pyyaml>=6.0"]
+
+[project.optional-dependencies]
+train = ["torch>=2.2", "transformers>=4.40"]
+eval = ["evalforge @ git+https://github.com/akashkorada25/evalforge@c845575adc4884ec168fc1efe0884b1debaef140"]
+dev = ["pytest>=7"]
+
+[project.scripts]
+ftvp = "ftvp.cli:main"
+
+[tool.setuptools]
+packages = ["ftvp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
